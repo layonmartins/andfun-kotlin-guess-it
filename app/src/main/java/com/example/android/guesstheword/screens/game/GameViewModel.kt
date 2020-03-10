@@ -16,23 +16,36 @@
 
 package com.example.android.guesstheword.screens.game
 
+import android.os.Build
 import android.os.CountDownTimer
+import android.os.VibrationEffect
+import android.os.Vibrator
 import android.text.format.DateUtils
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.Transformations
 import androidx.lifecycle.ViewModel
 
-// TODO (03) Copy over the different buzz pattern Long array constants here
+// TODOone (03) Copy over the different buzz pattern Long array constants here
+private val CORRECT_BUZZ_PATTERN = longArrayOf(100, 100, 100, 100, 100)
+private val PANIC_BUZZ_PATTERN = longArrayOf(0, 200)
+private val GAME_OVER_BUZZ_PATTER = longArrayOf(0, 2000)
+private val NO_BUZZ_PATTERN = longArrayOf(0)
 
 /**
  * ViewModel containing all the logic needed to run the game
  */
 class GameViewModel : ViewModel() {
 
-    // TODO (04) Make an enum called BuzzType - have a different buzz type for CORRECT, GAME_OVER
+    // TODONE (04) Make an enum called BuzzType - have a different buzz type for CORRECT, GAME_OVER
     // COUNTDOWN_PANIC and NO_BUZZ. Also add a number of seconds to the companion object for when
     // count-down buzzing will start
+    enum class BuzzType(val pattern: LongArray) {
+        CORRECT(CORRECT_BUZZ_PATTERN),
+        GAME_OVER(GAME_OVER_BUZZ_PATTER),
+        COUNTDOWN_PANIC(PANIC_BUZZ_PATTERN),
+        NO_BUZZ(NO_BUZZ_PATTERN)
+    }
 
     companion object {
         // These represent different important times in the game, such as game length.
@@ -42,6 +55,8 @@ class GameViewModel : ViewModel() {
 
         // This is the number of milliseconds in a second
         private const val ONE_SECOND = 1000L
+
+        private const val COUNTDOWN_PANIC_SECONDS = 10L
 
         // This is the total time of the game
         private const val COUNTDOWN_TIME = 60000L
@@ -79,15 +94,18 @@ class GameViewModel : ViewModel() {
     val eventGameFinish: LiveData<Boolean>
         get() = _eventGameFinish
 
-    // TODO (05) Create a properly encapsulated LiveData for a buzz event - its' type should be
+    // TODOne (05) Create a properly encapsulated LiveData for a buzz event - its' type should be
     // BuzzType
+    private val _eventBuzz = MutableLiveData<BuzzType>()
+    val eventBuzz: LiveData<BuzzType>
+        get() = _eventBuzz
 
     init {
         resetList()
         nextWord()
         _score.value = 0
 
-        // TODO (06) Set the value of buzz event to the correct BuzzType when the buzzer should
+        // TODOne (06) Set the value of buzz event to the correct BuzzType when the buzzer should
         // fire. This should happen when the game is over, when the user gets a correct answer,
         // and on each tick when countdown buzzing starts
 
@@ -96,6 +114,9 @@ class GameViewModel : ViewModel() {
 
             override fun onTick(millisUntilFinished: Long) {
                 _currentTime.value = (millisUntilFinished / ONE_SECOND)
+                if (millisUntilFinished / ONE_SECOND <= COUNTDOWN_PANIC_SECONDS) {
+                    _eventBuzz.value = BuzzType.COUNTDOWN_PANIC
+                }
             }
 
             override fun onFinish() {
@@ -166,8 +187,11 @@ class GameViewModel : ViewModel() {
         _eventGameFinish.value = false
     }
 
-    // TODO (07) Add a function onBuzzComplete for telling the view model when the buzz event has
+    // TODOne (07) Add a function onBuzzComplete for telling the view model when the buzz event has
     // completed
+    fun onBuzzComplete() {
+        _eventBuzz.value = BuzzType.NO_BUZZ
+    }
 
     override fun onCleared() {
         super.onCleared()
